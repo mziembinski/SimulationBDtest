@@ -6,7 +6,7 @@
 #' @param earn_mngt The name of the distribution to simulate earnings management. One of c('norm','weibull','gamma','exp') 
 #' @param earn_mngt_params The parameters of the distribution function to simulate managed earnings.
 #' @param occur What percentage of companies decides to manage.
-#' @param type The type of earnings management. One of c('-x','norm','0')
+#' @param type The type of earnings management. One of c('norm','0')
 #' @return The dataset with all observations.
 #' @examples
 #' simulate_earnings()
@@ -68,7 +68,6 @@ simulate_earnings <- function(size = 10000,
   sim_data[,flag_mngd := ifelse(em_prob > flag_mngd, 1, 0)]
   sim_data[,x_mngd := x]
   
-  if(type == '-x')  sim_data[flag_mngd == 1, x_mngd := -x]
   if(type == 'norm')  sim_data[flag_mngd == 1, x_mngd := abs(rnorm(1,0.01,0.01)), by = id]
   if(type == '0')  sim_data[flag_mngd == 1, x_mngd := 0]
   
