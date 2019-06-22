@@ -77,7 +77,7 @@ for(i in 1:100){
                             params = variants$earnings$params[[e]],
                             earn_mngt = variants$earn_mngt$name[[m]],
                             earn_mngt_params = variants$earn_mngt$params[[m]],
-                            occur = 0.01,
+                            occur = 0.5,
                             type = variants$type$name[[t]])
   
   temp[,i := i]

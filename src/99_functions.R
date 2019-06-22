@@ -64,8 +64,13 @@ simulate_earnings <- function(size = 10000,
   ##  managed earnings 
   sim_data[,id := .I]
   #sim_data[,flag_mngd := rbinom(1, size=2, prob=em_prob/100), by = id]
-  sim_data[,flag_mngd := runif(1) * occurr, by = id]
+  sim_data[,flag_mngd := runif(1), by = id]
   sim_data[,flag_mngd := ifelse(em_prob > flag_mngd, 1, 0)]
+  
+  sim_data[,flag_mngdocr := runif(1), by = id]
+  sim_data[,flag_mngd := ifelse(occurr > flag_mngd, flag_mngd, 0)]
+  
+  sim_data[,flag_mngdocr := NULL]
   sim_data[,x_mngd := x]
   
   if(type == 'norm')  sim_data[flag_mngd == 1, x_mngd := abs(rnorm(1,0.01,0.01)), by = id]
