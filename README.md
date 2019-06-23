@@ -1,0 +1,1 @@
+The projects aims to check the power and the size of the test proposed by [Burgstahler,Dichev 1997](https://www.sciencedirect.com/science/article/pii/S0165410197000177) under different assumptions. 
