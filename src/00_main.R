@@ -8,11 +8,16 @@
 #devtools::install_github('cttobin/ggthemr', upgrade_dependencies = F)
 
 packages<-c("data.table","ggplot2",
-            "reshape2",'ggthemr',
-            'tidyverse','gridExtra',
+            #"reshape2",
+            'ggthemr',
+            #'tidyverse',
+            'gridExtra',
             'VGAM','MASS','normalp','nortest',
             'bbmle','evir',
             'gridExtra')
+
+library(foreach)
+library(doParallel)
 
 sapply(packages,require,character.only=T)
 
@@ -20,9 +25,15 @@ options(scipen = 999)
 
 ggthemr('fresh')
 
+
+#setup parallel backend to use many processors
+cores = detectCores()
+cl <- makeCluster(cores[1]-1) #not to overload your computer
+registerDoParallel(cl)
+
 ## load functons 
 
-setwd('C:/Users/Paulina/Desktop/Misiowe/SimulationBDtest')
+#setwd('C:/Users/Paulina/Desktop/Misiowe/SimulationBDtest')
 source('src/99_functions.R', echo=F)
 
 
@@ -142,13 +153,83 @@ ranges <- c(0.0025, 0.005, 0.01)
 sizes <- c(1e3, 1e4, 1e5)
 
 
+# rm(resultsSize)
+# 
+# for (ee in 1:10){
+#   for (s in 1:3){
+#     for (r in 1:3){
+#       
+#       for(j in 1:1e5){
+#         temp <- simulate_earnings(size = sizes[s],
+#                                   earnings = variants$earnings$name[[ee]],
+#                                   params = variants$earnings$params[[ee]],
+#                                   range_h=ranges[r],
+#                                   print = F,
+#                                   simulateMngt = F)
+#         
+#         temp[, N := N]
+#         
+#         results <- BD_test(temp, range = ranges[r], output = 'all')
+#         results[,size := sizes[s]]
+#         results[,earnings := variants$earnings$name[[ee]]]
+#         results[,params := variants$earnings$params[[ee]]]
+#         results[,range_h := ranges[r]]
+#         results[,j := j]
+#         
+#         ifelse(!exists('resultsSize'),
+#                resultsSize <- results,
+#                resultsSize <- rbind(resultsSize,
+#                                     results))
+#       }
+#     }
+#   }
+#   print(ee)
+#   save(resultsSize, file = paste0('data/resultsSize_',ee,'.RData'))
+#   print(Sys.time())
+# }
+# 
+# save(resultsSize, file = 'data/resultsSize.RData')
+
+#### test size parralel ####
+
+#stop cluster
+# stopCluster(cl)
+
+ranges <- c(0.0025, 0.005, 0.01)
+sizes <- c(1e3, 1e4, 1e5)
+
+ee <- 1
+s <- 1
+r <- 1
+
 rm(resultsSize)
 
 for (ee in 1:10){
   for (s in 1:3){
     for (r in 1:3){
       
-      for(j in 1:1e5){
+      # for(j in 1:1e5){
+      #   temp <- simulate_earnings(size = sizes[s],
+      #                             earnings = variants$earnings$name[[ee]],
+      #                             params = variants$earnings$params[[ee]],
+      #                             range_h=ranges[r],
+      #                             print = F,
+      #                             simulateMngt = F)
+      #   
+      #   temp[, N := N]
+      #   
+      #   results <- BD_test(temp, range = ranges[r], output = 'all')
+      #   results[,size := sizes[s]]
+      #   results[,earnings := variants$earnings$name[[ee]]]
+      #   results[,params := variants$earnings$params[[ee]]]
+      #   results[,range_h := ranges[r]]
+      #   results[,j := j]
+      #   
+      #   
+      # }
+      
+      results <- foreach(j=1:1e5, .combine=rbind) %dopar% {
+        library(data.table)
         temp <- simulate_earnings(size = sizes[s],
                                   earnings = variants$earnings$name[[ee]],
                                   params = variants$earnings$params[[ee]],
@@ -165,20 +246,79 @@ for (ee in 1:10){
         results[,range_h := ranges[r]]
         results[,j := j]
         
-        ifelse(!exists('resultsSize'),
-               resultsSize <- results,
-               resultsSize <- rbind(resultsSize,
-                                    results))
+        results #Equivalent to finalMatrix = cbind(finalMatrix, tempMatrix)
       }
+    
+      ifelse(!exists('resultsSize'),
+             resultsSize <- results,
+             resultsSize <- rbind(resultsSize,
+                                  results))
     }
   }
   print(ee)
+  save(resultsSize, file = paste0('data/resultsSize_',ee,'.RData'))
   print(Sys.time())
 }
 
-save(resultsSize, file = 'data/resultsSize.RData')
+stopCluster(cl)
 
-#### test power ####
+# #### test power ####
+# rm(resultsPower)
+# 
+# occurs <- c(0.2, 0.4, 0.6)
+# 
+# for (ee in 1:10){
+#   for (m in 1:3){
+#     for (t in 1:3){
+#       for (o in 1:3){
+#         for (s in 1:3){
+#           for (r in 1:3){
+#             
+#             for(j in 1:1e5){
+#               temp <- simulate_earnings(size = sizes[s],
+#                                         earnings = variants$earnings$name[[ee]],
+#                                         params = variants$earnings$params[[ee]],
+#                                         earn_mngt = variants$earn_mngt$name[[m]],
+#                                         earn_mngt_params = variants$earn_mngt$params[[m]],
+#                                         occur = occurs[o],
+#                                         type = variants$type$name[[t]],
+#                                         range_h=ranges[r],
+#                                         print = F,
+#                                         simulateMngt = T)
+#               
+#               temp[, N := N_final]
+#               
+#               results <- BD_test(temp, range = ranges[r], output = 'all')
+#               results[,size := sizes[s]]
+#               results[,earnings := variants$earnings$name[[ee]]]
+#               results[,params := variants$earnings$params[[ee]]]
+#               results[,earn_mngt := variants$earn_mngt$name[[m]]]
+#               results[,earn_mngt_params := variants$earn_mngt$params[[m]]]
+#               results[,occur := occurs[o]]
+#               results[,type := variants$type$name[[t]]]
+#               
+#               results[,range_h := ranges[r]]
+#               results[,j := j]
+#               
+#               ifelse(!exists('resultsPower'),
+#                      resultsPower <- results,
+#                      resultsPower <- rbind(resultsPower,
+#                                            results))
+#             }
+#           }
+#         }
+#       }
+#     }
+#   }
+#   print(ee)
+#   save(resultsSize, file = paste0('data/resultsPower_',ee,'.RData'))
+#   print(Sys.time())
+# }
+# 
+# 
+# save(resultsPower, file = 'data/resultsPower.RData')
+
+#### test power parralel ####
 rm(resultsPower)
 
 occurs <- c(0.2, 0.4, 0.6)
@@ -190,7 +330,8 @@ for (ee in 1:10){
         for (s in 1:3){
           for (r in 1:3){
             
-            for(j in 1:1e5){
+            results <- foreach(j=1:1e5, .combine=rbind) %dopar% {
+              library(data.table)
               temp <- simulate_earnings(size = sizes[s],
                                         earnings = variants$earnings$name[[ee]],
                                         params = variants$earnings$params[[ee]],
@@ -216,23 +357,25 @@ for (ee in 1:10){
               results[,range_h := ranges[r]]
               results[,j := j]
               
-              ifelse(!exists('resultsPower'),
-                     resultsPower <- results,
-                     resultsPower <- rbind(resultsPower,
-                                           results))
+              results
             }
+            
+            ifelse(!exists('resultsPower'),
+                   resultsPower <- results,
+                   resultsPower <- rbind(resultsPower,
+                                         results))
           }
         }
       }
     }
   }
   print(ee)
+  save(resultsSize, file = paste0('data/resultsPower_',ee,'.RData'))
   print(Sys.time())
 }
 
 
 save(resultsPower, file = 'data/resultsPower.RData')
-
 #### simulate earnings ####
 e = 1
 m = 1
