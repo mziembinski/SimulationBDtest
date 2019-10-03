@@ -202,9 +202,12 @@ ee <- 1
 s <- 1
 r <- 1
 
-rm(resultsSize)
+cores = detectCores()
+cl <- makeCluster(cores[1]-1) #not to overload your computer
+registerDoParallel(cl)
 
-for (ee in 1:10){
+for (ee in 3:10){
+  rm(resultsSize)
   for (s in 1:3){
     for (r in 1:3){
       
@@ -230,6 +233,12 @@ for (ee in 1:10){
       
       results <- foreach(j=1:1e5, .combine=rbind) %dopar% {
         library(data.table)
+        packages<-c("data.table",
+                    'VGAM','MASS','normalp','nortest',
+                    'bbmle','evir')
+        
+        sapply(packages,require,character.only=T)
+        
         temp <- simulate_earnings(size = sizes[s],
                                   earnings = variants$earnings$name[[ee]],
                                   params = variants$earnings$params[[ee]],
@@ -242,7 +251,7 @@ for (ee in 1:10){
         results <- BD_test(temp, range = ranges[r], output = 'all')
         results[,size := sizes[s]]
         results[,earnings := variants$earnings$name[[ee]]]
-        results[,params := variants$earnings$params[[ee]]]
+        results[,params := paste0(variants$earnings$params[[ee]], collapse = ',')]
         results[,range_h := ranges[r]]
         results[,j := j]
         
@@ -263,6 +272,8 @@ for (ee in 1:10){
 stopCluster(cl)
 
 # #### test power ####
+
+
 # rm(resultsPower)
 # 
 # occurs <- c(0.2, 0.4, 0.6)
@@ -319,6 +330,12 @@ stopCluster(cl)
 # save(resultsPower, file = 'data/resultsPower.RData')
 
 #### test power parralel ####
+stopCluster(cl)
+
+cores = detectCores()
+cl <- makeCluster(cores[1]-1) #not to overload your computer
+registerDoParallel(cl)
+
 rm(resultsPower)
 
 occurs <- c(0.2, 0.4, 0.6)
@@ -327,6 +344,7 @@ for (ee in 1:10){
   for (m in 1:3){
     for (t in 1:3){
       for (o in 1:3){
+        rm(resultsSize)
         for (s in 1:3){
           for (r in 1:3){
             
@@ -366,16 +384,24 @@ for (ee in 1:10){
                                          results))
           }
         }
-      }
+      
+        print(ee)
+        save(resultsPower, file = paste0('data/resultsPower_',
+                                         ee,'_',
+                                         m,'_',
+                                         t,'_',
+                                         o,'_',
+                                         '.RData'))
+        print(Sys.time())
+        
+        }
     }
   }
-  print(ee)
-  save(resultsSize, file = paste0('data/resultsPower_',ee,'.RData'))
-  print(Sys.time())
+ 
 }
 
 
-save(resultsPower, file = 'data/resultsPower.RData')
+#save(resultsPower, file = 'data/resultsPower.RData')
 #### simulate earnings ####
 e = 1
 m = 1
