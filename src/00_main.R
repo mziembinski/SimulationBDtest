@@ -16,10 +16,11 @@ packages<-c("data.table","ggplot2",
             'bbmle','evir',
             'gridExtra')
 
+sapply(packages,require,character.only=T)
+
 library(foreach)
 library(doParallel)
 
-sapply(packages,require,character.only=T)
 
 options(scipen = 999)
 
@@ -27,9 +28,9 @@ ggthemr('fresh')
 
 
 #setup parallel backend to use many processors
-cores = detectCores()
-cl <- makeCluster(cores[1]-1) #not to overload your computer
-registerDoParallel(cl)
+# cores = detectCores()
+# cl <- makeCluster(cores[1]-1) #not to overload your computer
+# registerDoParallel(cl)
 
 ## load functons 
 
@@ -206,7 +207,7 @@ cores = detectCores()
 cl <- makeCluster(cores[1]-1) #not to overload your computer
 registerDoParallel(cl)
 
-for (ee in 3:10){
+for (ee in 1:10){
   rm(resultsSize)
   for (s in 1:3){
     for (r in 1:3){
@@ -333,21 +334,30 @@ stopCluster(cl)
 stopCluster(cl)
 
 cores = detectCores()
-cl <- makeCluster(cores[1]-1) #not to overload your computer
+cl <- makeCluster(cores[1]-3) #not to overload your computer
 registerDoParallel(cl)
 
 rm(resultsPower)
 
 occurs <- c(0.2, 0.4, 0.6)
 
-for (ee in 1:10){
+for (ee in 3:10){
   for (m in 1:3){
     for (t in 1:3){
       for (o in 1:3){
-        rm(resultsSize)
+        rm(resultsPower)
+        if(paste0(ee,'_',
+                  m,'_',
+                  t,'_',
+                  o,'_') %in% c('2_1_1_1_',
+                                '2_1_1_2_',
+                                '2_1_1_3_',
+                                '2_1_2_1_')){
+          next()
+        }
+        
         for (s in 1:3){
           for (r in 1:3){
-            
             results <- foreach(j=1:1e5, .combine=rbind) %dopar% {
               library(data.table)
               temp <- simulate_earnings(size = sizes[s],
